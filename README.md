@@ -193,7 +193,7 @@ qci --help
 - [tsup](https://tsup.egoist.dev/) 构建
 - [@clack/prompts](https://github.com/nicekid1/clack) CLI 交互
 - [yaml](https://github.com/eemeli/yaml) frontmatter 解析
-- Node.js >= 18
+- Node.js >= 24
 
 ## License
 

@@ -12,16 +12,12 @@ jobs:
   scan:
     name: 扫描与测试
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node-version: [18, 20, 22]
     steps:
       - uses: actions/checkout@v4
 
-      - name: 使用 Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node-version }}
+          node-version: 24
           cache: npm
 
       - run: npm ci
@@ -47,7 +43,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
           registry-url: https://registry.npmjs.org
 

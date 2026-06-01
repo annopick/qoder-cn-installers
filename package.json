@@ -7,7 +7,7 @@
     "qci": "./dist/cli.js"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=24"
   },
   "scripts": {
     "build": "tsup",
