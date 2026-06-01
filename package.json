@@ -1,5 +1,5 @@
 {
-  "name": "qci",
+  "name": "@annopick/qci",
   "version": "0.1.0",
   "description": "CLI installer for QoderCN Desktop skills, agents and MCP resources",
   "type": "module",
@@ -28,6 +28,7 @@
     "yaml": "^2.7.0"
   },
   "devDependencies": {
+    "@types/node": "^25.9.1",
     "tsup": "^8.4.0",
     "tsx": "^4.22.4",
     "typescript": "^5.8.0"
