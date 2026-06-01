@@ -1,0 +1,35 @@
+{
+  "name": "qci",
+  "version": "0.1.0",
+  "description": "CLI installer for QoderCN Desktop skills, agents and MCP resources",
+  "type": "module",
+  "bin": {
+    "qci": "./dist/cli.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "tsup",
+    "test": "node --import tsx --test src/**/*.test.ts",
+    "test:watch": "node --import tsx --test --watch src/**/*.test.ts"
+  },
+  "keywords": [
+    "qci",
+    "qodercn",
+    "skills",
+    "agents",
+    "mcp",
+    "installer"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@clack/prompts": "^0.9.1",
+    "yaml": "^2.7.0"
+  },
+  "devDependencies": {
+    "tsup": "^8.4.0",
+    "tsx": "^4.22.4",
+    "typescript": "^5.8.0"
+  }
+}
