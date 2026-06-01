@@ -1,12 +1,8 @@
-name: CI & Publish
+name: CI
 
 on:
   push:
     branches: [main]
-    tags: ["v*"]
-
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   scan:
@@ -30,27 +26,3 @@ jobs:
 
       - name: 测试
         run: npm test
-
-  publish:
-    name: 发布到 NPM
-    needs: scan
-    runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v')
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          cache: npm
-          registry-url: https://registry.npmjs.org
-
-      - run: npm ci
-      - run: npm run build
-
-      - name: 发布
-        run: npm publish --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_CD_TOKEN }}
