@@ -6,10 +6,10 @@
 
 ```bash
 # 无需安装，直接使用
-npx qci add <source>
+npx @annopick/qci add <source>
 
 # 或全局安装
-npm install -g qci
+npm install -g @annopick/qci
 qci add <source>
 ```
 
@@ -17,16 +17,16 @@ qci add <source>
 
 ```bash
 # 从 Git 仓库安装所有资源
-npx qci add https://github.com/your-org/your-skills-repo
+npx @annopick/qci add https://github.com/your-org/your-skills-repo
 
 # 从本地路径安装
-npx qci add /path/to/your-skills-repo
+npx @annopick/qci add /path/to/your-skills-repo
 
 # 使用 SSH 克隆
-npx qci add git@github.com:your-org/your-skills-repo.git
+npx @annopick/qci add git@github.com:your-org/your-skills-repo.git
 
 # 只查看仓库中有哪些可用资源
-npx qci add https://github.com/your-org/your-skills-repo --list
+npx @annopick/qci add https://github.com/your-org/your-skills-repo --list
 ```
 
 ## 命令
