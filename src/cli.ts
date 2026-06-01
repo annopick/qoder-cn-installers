@@ -64,14 +64,26 @@ if (command === "add" || command === "a" || command === "i" || command === "inst
     const { discoverMcpServices } = await import("./mcp-discovery.js");
 
     const source = parseSource(parsed.source);
-    // For listing, we'd need to clone if git source — simplified for now
-    if (source.type !== "local") {
-      console.error("--list is only supported for local paths currently");
-      process.exit(1);
+
+    let scanPath: string;
+    let cleanup: (() => Promise<void>) | undefined;
+
+    if (source.type === "local") {
+      scanPath = source.path;
+    } else {
+      const url = source.type === "git-url" ? source.url : source.url;
+      const { cloneRepo } = await import("./git.js");
+      const result = await cloneRepo(url, parsed.subpath);
+      scanPath = result.cloneDir;
+      cleanup = result.cleanup;
     }
-    const skills = await discoverSkills(source.path);
-    const agents = await discoverAgents(source.path);
-    const mcpServices = await discoverMcpServices(source.path);
+
+    try {
+    const [skills, agents, mcpServices] = await Promise.all([
+      discoverSkills(scanPath),
+      discoverAgents(scanPath),
+      discoverMcpServices(scanPath),
+    ]);
 
     console.log("Available resources:");
     if (skills.length > 0) {
@@ -85,6 +97,9 @@ if (command === "add" || command === "a" || command === "i" || command === "inst
     if (mcpServices.length > 0) {
       console.log("\nMCP services:");
       for (const m of mcpServices) console.log(`  - ${m.name}`);
+    }
+    } finally {
+      await cleanup?.();
     }
     process.exit(0);
   }
