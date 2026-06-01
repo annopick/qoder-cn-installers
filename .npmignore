@@ -1,0 +1,12 @@
+src/
+docs/
+*.test.ts
+*.test.js
+*.test.js.map
+tsconfig.json
+tsup.config.ts
+CONTEXT.md
+AGENTS.md
+.claude/
+.git/
+.gitignore
