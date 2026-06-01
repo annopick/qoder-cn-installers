@@ -1,0 +1,57 @@
+name: CI & Publish
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+
+jobs:
+  scan:
+    name: 扫描与测试
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18, 20, 22]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 使用 Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+
+      - run: npm ci
+
+      - name: 类型检查
+        run: npx tsc --noEmit
+
+      - name: 构建
+        run: npm run build
+
+      - name: 测试
+        run: npm test
+
+  publish:
+    name: 发布到 NPM
+    needs: scan
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          registry-url: https://registry.npmjs.org
+
+      - run: npm ci
+      - run: npm run build
+
+      - name: 发布
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_CD_TOKEN }}
