@@ -294,4 +294,26 @@ describe("CLI add (filter)", () => {
     const skillsExist = await fs.access(path.join(qoderDir, "skills")).then(() => true).catch(() => false);
     assert.equal(skillsExist, false);
   });
+
+  it("installs all skills when filter is empty array", async () => {
+    await runAdd(repoDir, { qoderDir, mcpTargetDir, filterSkills: [] });
+
+    const entries = await fs.readdir(path.join(qoderDir, "skills"));
+    assert.equal(entries.length, 2);
+    // Other types should not be installed
+    const agentsExist = await fs.access(path.join(qoderDir, "agents")).then(() => true).catch(() => false);
+    assert.equal(agentsExist, false);
+  });
+
+  it("installs all skills and all commands when both filters are empty arrays", async () => {
+    await runAdd(repoDir, { qoderDir, mcpTargetDir, filterSkills: [], filterCommands: [] });
+
+    const skillEntries = await fs.readdir(path.join(qoderDir, "skills"));
+    assert.equal(skillEntries.length, 2);
+    const commandEntries = await fs.readdir(path.join(qoderDir, "commands"));
+    assert.equal(commandEntries.length, 1);
+    // Agents and MCP should not be installed
+    const agentsExist = await fs.access(path.join(qoderDir, "agents")).then(() => true).catch(() => false);
+    assert.equal(agentsExist, false);
+  });
 });

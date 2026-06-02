@@ -68,22 +68,31 @@ export async function runAdd(source: string, options: AddOptions = {}): Promise<
     const hasAnyFilter = options.filterSkills || options.filterAgents || options.filterMcp || options.filterCommands;
     if (hasAnyFilter) {
       if (options.filterSkills) {
-        skills = skills.filter((s) => options.filterSkills!.includes(s.name));
+        if (options.filterSkills.length > 0) {
+          skills = skills.filter((s) => options.filterSkills!.includes(s.name));
+        }
+        // empty array = install all skills (no filter)
       } else {
         skills = [];
       }
       if (options.filterAgents) {
-        agents = agents.filter((a) => options.filterAgents!.includes(a.name));
+        if (options.filterAgents.length > 0) {
+          agents = agents.filter((a) => options.filterAgents!.includes(a.name));
+        }
       } else {
         agents = [];
       }
       if (options.filterMcp) {
-        mcpServices = mcpServices.filter((m) => options.filterMcp!.includes(m.name));
+        if (options.filterMcp.length > 0) {
+          mcpServices = mcpServices.filter((m) => options.filterMcp!.includes(m.name));
+        }
       } else {
         mcpServices = [];
       }
       if (options.filterCommands) {
-        commands = commands.filter((c) => options.filterCommands!.includes(c.name));
+        if (options.filterCommands.length > 0) {
+          commands = commands.filter((c) => options.filterCommands!.includes(c.name));
+        }
       } else {
         commands = [];
       }
