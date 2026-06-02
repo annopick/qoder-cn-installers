@@ -18,7 +18,13 @@ const EMPTY_TRACKER: SourceTracker = { skills: {}, agents: {}, mcp: {}, commands
 export async function readSourceTracker(filePath: string): Promise<SourceTracker> {
   try {
     const content = await fs.readFile(filePath, "utf-8");
-    return JSON.parse(content) as SourceTracker;
+    const parsed = JSON.parse(content);
+    return {
+      skills: parsed.skills ?? {},
+      agents: parsed.agents ?? {},
+      mcp: parsed.mcp ?? {},
+      commands: parsed.commands ?? {},
+    };
   } catch {
     return { ...EMPTY_TRACKER };
   }
