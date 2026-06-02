@@ -1,6 +1,6 @@
 # QCI — QoderCN Resource Installer
 
-一个基于 TypeScript 的 CLI 安装器，从 Git 仓库或本地路径安装 Skill、Agent、MCP 资源到 QoderCN Desktop。
+一个基于 TypeScript 的 CLI 安装器，从 Git 仓库或本地路径安装 Skill、Agent、MCP、指令 资源到 QoderCN Desktop。
 
 ## 安装
 
@@ -43,6 +43,7 @@ qci add <source> [options]
 | `--skill <name...>` | 只安装指定的 Skill |
 | `--agent <name...>` | 只安装指定的 Agent |
 | `--mcp <name...>` | 只安装指定的 MCP 服务 |
+| `--command <name...>` | 只安装指定的指令 |
 | `--path <subpath>` | 指定仓库内的子目录（仅 Git 来源） |
 | `--list` | 列出可用资源，不安装 |
 | `-y, --yes` | 跳过确认提示 |
@@ -66,6 +67,7 @@ qci list [options]
 | `--skill` | 只列出 Skill |
 | `--agent` | 只列出 Agent |
 | `--mcp` | 只列出 MCP 服务 |
+| `--command` | 只列出指令 |
 | `--json` | JSON 格式输出 |
 
 ### `remove` — 移除已安装资源
@@ -79,6 +81,7 @@ qci remove [options]
 | `--skill <name...>` | 移除指定 Skill |
 | `--agent <name...>` | 移除指定 Agent |
 | `--mcp <name...>` | 移除指定 MCP 服务 |
+| `--command <name...>` | 移除指定指令 |
 | `--all` | 移除所有资源 |
 
 ### `update` — 更新已安装资源
@@ -92,6 +95,7 @@ qci update [options]
 | `--skill <name...>` | 只更新指定 Skill |
 | `--agent <name...>` | 只更新指定 Agent |
 | `--mcp <name...>` | 只更新指定 MCP 服务 |
+| `--command <name...>` | 只更新指定指令 |
 
 更新时从原始来源重新拉取，自动检测变更。MCP 服务更新时同名配置会被覆盖。
 
@@ -107,9 +111,11 @@ repo/
 │       └── (references/, scripts/ 等子目录)
 ├── agents/
 │   └── <agent-name>.md       # 必须含 name 和 description 的 YAML frontmatter
-└── mcp/
-    └── <mcp-name>/
-        └── mcp.json           # 标准 mcpServers JSON 结构
+├── mcp/
+│   └── <mcp-name>/
+│       └── mcp.json           # 标准 mcpServers JSON 结构
+└── commands/
+    └── <command-name>.md      # 可选含 description 的 YAML frontmatter
 ```
 
 每种资源类型都是可选的——仓库可以只包含 Skill、只包含 Agent，或任意组合。
@@ -157,12 +163,28 @@ tools: Read, Grep, Bash
 }
 ```
 
+### 指令（Command）
+
+Qoder 自定义指令，由 `.md` 文件定义，文件名即指令名：
+
+```markdown
+---
+description: 代码检查指令
+---
+
+## 概述
+用于评估源代码的系统化框架...
+```
+
+YAML frontmatter 为可选，无 frontmatter 的文件也会被正常安装。
+
 ## 安装位置
 
 | 资源类型 | 路径 |
 |---------|------|
 | Skill | `~/.qoder-cn/skills/<name>/` |
 | Agent | `~/.qoder-cn/agents/<name>.md` |
+| 指令 | `~/.qoder-cn/commands/<name>.md` |
 | MCP（macOS） | `~/Library/Application Support/QoderCN/SharedClientCache/mcp.json` |
 | MCP（Windows） | `%APPDATA%\QoderCN\SharedClientCache\mcp.json` |
 
