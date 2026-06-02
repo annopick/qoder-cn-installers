@@ -10,9 +10,10 @@ export interface SourceTracker {
   skills: Record<string, SourceEntry>;
   agents: Record<string, SourceEntry>;
   mcp: Record<string, SourceEntry>;
+  commands: Record<string, SourceEntry>;
 }
 
-const EMPTY_TRACKER: SourceTracker = { skills: {}, agents: {}, mcp: {} };
+const EMPTY_TRACKER: SourceTracker = { skills: {}, agents: {}, mcp: {}, commands: {} };
 
 export async function readSourceTracker(filePath: string): Promise<SourceTracker> {
   try {

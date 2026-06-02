@@ -4,6 +4,7 @@ import { readSourceTracker, writeSourceTracker } from "./source-tracker.js";
 import { discoverSkills } from "./skills.js";
 import { installSkill } from "./installer.js";
 import { discoverAgents } from "./agents.js";
+import { discoverCommands } from "./commands.js";
 import { discoverMcpServices } from "./mcp-discovery.js";
 import { createHash } from "node:crypto";
 
@@ -13,6 +14,7 @@ export interface UpdateOptions {
   filterSkills?: string[];
   filterAgents?: string[];
   filterMcp?: string[];
+  filterCommands?: string[];
 }
 
 export interface UpdateResult {
@@ -109,6 +111,31 @@ export async function runUpdate(options: UpdateOptions): Promise<UpdateResult> {
 
       await fs.writeFile(mcpPath, JSON.stringify(config, null, 2) + "\n", "utf-8");
       tracker.mcp[name] = { source: entry.source, ref: currentHash };
+      result.updated.push(name);
+    } catch {
+      result.skipped.push(name);
+    }
+  }
+
+  // Update commands
+  for (const [name, entry] of Object.entries(tracker.commands)) {
+    if (options.filterCommands && !options.filterCommands.includes(name)) continue;
+
+    try {
+      const commands = await discoverCommands(entry.source);
+      const command = commands.find((c) => c.name === name);
+      if (!command) { result.skipped.push(name); continue; }
+
+      const currentHash = await computeFileHash(command.path);
+      if (currentHash === entry.ref) {
+        result.skipped.push(name);
+        continue;
+      }
+
+      const destPath = path.join(qoderDir, "commands", `${name}.md`);
+      await fs.mkdir(path.dirname(destPath), { recursive: true });
+      await fs.copyFile(command.path, destPath);
+      tracker.commands[name] = { source: entry.source, ref: currentHash };
       result.updated.push(name);
     } catch {
       result.skipped.push(name);

@@ -105,6 +105,14 @@ describe("CLI add (all resource types)", () => {
       "---\nname: code-review\ndescription: Code review expert\n---\nYou are a reviewer.",
     );
 
+    // Command
+    const commandsDir = path.join(repoDir, "commands");
+    await fs.mkdir(commandsDir, { recursive: true });
+    await fs.writeFile(
+      path.join(commandsDir, "code-inspect.md"),
+      "---\ndescription: Code inspection command\n---\n## Overview\nInspect code.",
+    );
+
     // MCP
     const mcpDir = path.join(repoDir, "mcp", "github");
     await fs.mkdir(mcpDir, { recursive: true });
@@ -118,7 +126,7 @@ describe("CLI add (all resource types)", () => {
     await fs.rm(tmpDir, { recursive: true, force: true });
   });
 
-  it("installs skill, agent and MCP together", async () => {
+  it("installs skill, agent, command and MCP together", async () => {
     await runAdd(repoDir, { qoderDir, mcpTargetDir });
 
     // Skill
@@ -128,6 +136,10 @@ describe("CLI add (all resource types)", () => {
     // Agent
     const agentMd = await fs.readFile(path.join(qoderDir, "agents", "code-review.md"), "utf-8");
     assert.ok(agentMd.includes("You are a reviewer."));
+
+    // Command
+    const commandMd = await fs.readFile(path.join(qoderDir, "commands", "code-inspect.md"), "utf-8");
+    assert.ok(commandMd.includes("Inspect code."));
 
     // MCP
     const mcpJson = JSON.parse(await fs.readFile(path.join(mcpTargetDir, "mcp.json"), "utf-8"));
@@ -141,6 +153,7 @@ describe("CLI add (all resource types)", () => {
     assert.ok(tracker.skills["my-skill"]);
     assert.ok(tracker.agents["code-review"]);
     assert.ok(tracker.mcp["github"]);
+    assert.ok(tracker.commands["code-inspect"]);
   });
 
   it("skips MCP server if already installed", async () => {
@@ -234,6 +247,9 @@ describe("CLI add (filter)", () => {
     const mcpDir = path.join(repoDir, "mcp", "github");
     await fs.mkdir(mcpDir, { recursive: true });
     await fs.writeFile(path.join(mcpDir, "mcp.json"), JSON.stringify({ mcpServers: { github: { command: "npx" } } }));
+    const commandsDir = path.join(repoDir, "commands");
+    await fs.mkdir(commandsDir, { recursive: true });
+    await fs.writeFile(path.join(commandsDir, "cmd-a.md"), "---\ndescription: Command A\n---\nContent A");
   });
 
   afterEach(async () => {
@@ -245,9 +261,11 @@ describe("CLI add (filter)", () => {
 
     const entries = await fs.readdir(path.join(qoderDir, "skills"));
     assert.deepStrictEqual(entries, ["skill-a"]);
-    // Agents and MCP should not be installed
+    // Agents, MCP, commands should not be installed
     const agentsExist = await fs.access(path.join(qoderDir, "agents")).then(() => true).catch(() => false);
     assert.equal(agentsExist, false);
+    const commandsExist = await fs.access(path.join(qoderDir, "commands")).then(() => true).catch(() => false);
+    assert.equal(commandsExist, false);
   });
 
   it("installs only filtered agent", async () => {
@@ -264,6 +282,15 @@ describe("CLI add (filter)", () => {
 
     const mcpJson = JSON.parse(await fs.readFile(path.join(mcpTargetDir, "mcp.json"), "utf-8"));
     assert.ok(mcpJson.mcpServers.github);
+    const skillsExist = await fs.access(path.join(qoderDir, "skills")).then(() => true).catch(() => false);
+    assert.equal(skillsExist, false);
+  });
+
+  it("installs only filtered command", async () => {
+    await runAdd(repoDir, { qoderDir, mcpTargetDir, filterCommands: ["cmd-a"] });
+
+    const commandMd = await fs.readFile(path.join(qoderDir, "commands", "cmd-a.md"), "utf-8");
+    assert.ok(commandMd.includes("Content A"));
     const skillsExist = await fs.access(path.join(qoderDir, "skills")).then(() => true).catch(() => false);
     assert.equal(skillsExist, false);
   });

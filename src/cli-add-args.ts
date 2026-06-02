@@ -3,6 +3,7 @@ export interface AddArgs {
   skills?: string[];
   agents?: string[];
   mcp?: string[];
+  commands?: string[];
   subpath?: string;
   all: boolean;
   yes: boolean;
@@ -44,6 +45,10 @@ export function parseAddArgs(args: string[]): AddArgs {
       i++;
       result.mcp = collectValues(args, i);
       i += result.mcp.length - 1;
+    } else if (arg === "--command") {
+      i++;
+      result.commands = collectValues(args, i);
+      i += result.commands.length - 1;
     } else if (arg === "--path") {
       i++;
       result.subpath = args[i];

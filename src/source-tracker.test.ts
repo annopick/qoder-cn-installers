@@ -20,7 +20,7 @@ describe("source tracker", () => {
 
   it("reads empty tracker when file does not exist", async () => {
     const tracker = await readSourceTracker(trackerPath);
-    const expected: SourceTracker = { skills: {}, agents: {}, mcp: {} };
+    const expected: SourceTracker = { skills: {}, agents: {}, mcp: {}, commands: {} };
     assert.deepStrictEqual(tracker, expected);
   });
 
@@ -30,6 +30,7 @@ describe("source tracker", () => {
       skills: { "my-skill": entry },
       agents: {},
       mcp: {},
+      commands: {},
     };
 
     await writeSourceTracker(trackerPath, tracker);
@@ -43,6 +44,7 @@ describe("source tracker", () => {
       skills: { "my-skill": { source: "/path", ref: "v1" } },
       agents: {},
       mcp: {},
+      commands: {},
     };
     await writeSourceTracker(trackerPath, tracker);
 
@@ -58,6 +60,7 @@ describe("source tracker", () => {
       skills: { "skill-a": { source: "/path", ref: "a1" } },
       agents: {},
       mcp: {},
+      commands: {},
     };
     await writeSourceTracker(trackerPath, tracker);
 
@@ -77,6 +80,7 @@ describe("source tracker", () => {
       },
       agents: {},
       mcp: {},
+      commands: {},
     };
     await writeSourceTracker(trackerPath, tracker);
 

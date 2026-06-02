@@ -64,6 +64,16 @@ describe("parseAddArgs", () => {
     assert.equal(result.yes, true);
   });
 
+  it("parses --command flag", () => {
+    const result = parseAddArgs(["https://github.com/owner/repo", "--command", "code-inspect"]);
+    assert.deepStrictEqual(result.commands, ["code-inspect"]);
+  });
+
+  it("parses --command with multiple values", () => {
+    const result = parseAddArgs(["https://github.com/owner/repo", "--command", "a", "b"]);
+    assert.deepStrictEqual(result.commands, ["a", "b"]);
+  });
+
   it("throws when no source provided", () => {
     assert.throws(() => parseAddArgs([]), /source is required/i);
   });

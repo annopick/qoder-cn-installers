@@ -32,6 +32,13 @@ describe("runRemove", () => {
       JSON.stringify({ mcpServers: { github: { command: "npx" }, db: { command: "psql" } } }),
     );
 
+    // Create installed command
+    await fs.mkdir(path.join(qoderDir, "commands"), { recursive: true });
+    await fs.writeFile(
+      path.join(qoderDir, "commands", "code-inspect.md"),
+      "---\ndescription: Code inspection\n---\nContent",
+    );
+
     // Create source tracker
     await fs.writeFile(
       path.join(qoderDir, ".qci.source.json"),
@@ -39,6 +46,7 @@ describe("runRemove", () => {
         skills: { "my-skill": { source: "/path", ref: "abc" } },
         agents: { "my-agent": { source: "/path", ref: "def" } },
         mcp: { github: { source: "/path", ref: "ghi" }, db: { source: "/path", ref: "jkl" } },
+        commands: { "code-inspect": { source: "/path", ref: "mno" } },
       }),
     );
   });
@@ -83,6 +91,9 @@ describe("runRemove", () => {
     const agentEntries = await fs.readdir(path.join(qoderDir, "agents")).catch(() => []);
     assert.equal(agentEntries.length, 0);
 
+    const commandEntries = await fs.readdir(path.join(qoderDir, "commands")).catch(() => []);
+    assert.equal(commandEntries.length, 0);
+
     const mcpJson = JSON.parse(await fs.readFile(path.join(mcpTargetDir, "mcp.json"), "utf-8"));
     assert.equal(Object.keys(mcpJson.mcpServers).length, 0);
 
@@ -90,6 +101,7 @@ describe("runRemove", () => {
     assert.equal(Object.keys(tracker.skills).length, 0);
     assert.equal(Object.keys(tracker.agents).length, 0);
     assert.equal(Object.keys(tracker.mcp).length, 0);
+    assert.equal(Object.keys(tracker.commands).length, 0);
   });
 
   it("preserves mcp.json file after removing all services", async () => {
@@ -99,5 +111,13 @@ describe("runRemove", () => {
     assert.ok(content.length > 0);
     const mcpJson = JSON.parse(content);
     assert.ok(mcpJson.mcpServers);
+  });
+
+  it("removes a command", async () => {
+    await runRemove({ qoderDir, mcpTargetDir, commands: ["code-inspect"] });
+
+    await assert.rejects(fs.access(path.join(qoderDir, "commands", "code-inspect.md")));
+    const tracker = JSON.parse(await fs.readFile(path.join(qoderDir, ".qci.source.json"), "utf-8"));
+    assert.ok(!tracker.commands["code-inspect"]);
   });
 });

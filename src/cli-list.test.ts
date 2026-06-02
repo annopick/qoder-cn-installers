@@ -35,6 +35,13 @@ describe("runList", () => {
       path.join(mcpTargetDir, "mcp.json"),
       JSON.stringify({ mcpServers: { github: { command: "npx" }, db: { command: "psql" } } }),
     );
+
+    // Create installed commands
+    await fs.mkdir(path.join(qoderDir, "commands"), { recursive: true });
+    await fs.writeFile(
+      path.join(qoderDir, "commands", "code-inspect.md"),
+      "---\ndescription: Code inspection\n---\nContent",
+    );
   });
 
   afterEach(async () => {
@@ -47,10 +54,12 @@ describe("runList", () => {
     assert.equal(result.skills.length, 2);
     assert.equal(result.agents.length, 1);
     assert.equal(result.mcp.length, 2);
+    assert.equal(result.commands.length, 1);
     assert.equal(result.skills[0], "skill-a");
     assert.equal(result.agents[0], "agent-a");
     assert.ok(result.mcp.includes("github"));
     assert.ok(result.mcp.includes("db"));
+    assert.equal(result.commands[0], "code-inspect");
   });
 
   it("filters by skill only", async () => {
@@ -77,6 +86,15 @@ describe("runList", () => {
     assert.equal(result.mcp.length, 2);
   });
 
+  it("filters by command only", async () => {
+    const result = await runList({ qoderDir, mcpTargetDir, type: "command" });
+
+    assert.equal(result.skills.length, 0);
+    assert.equal(result.agents.length, 0);
+    assert.equal(result.commands.length, 1);
+    assert.equal(result.commands[0], "code-inspect");
+  });
+
   it("returns empty when qoder-cn does not exist", async () => {
     const emptyDir = path.join(tmpDir, "no-exist");
     const result = await runList({ qoderDir: emptyDir, mcpTargetDir: path.join(tmpDir, "no-mcp") });
@@ -84,6 +102,7 @@ describe("runList", () => {
     assert.deepStrictEqual(result.skills, []);
     assert.deepStrictEqual(result.agents, []);
     assert.deepStrictEqual(result.mcp, []);
+    assert.deepStrictEqual(result.commands, []);
   });
 
   it("returns empty mcp when mcp.json does not exist", async () => {

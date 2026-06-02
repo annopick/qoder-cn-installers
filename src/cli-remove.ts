@@ -8,6 +8,7 @@ export interface RemoveOptions {
   skills?: string[];
   agents?: string[];
   mcpServices?: string[];
+  commands?: string[];
   all?: boolean;
 }
 
@@ -22,6 +23,7 @@ export async function runRemove(options: RemoveOptions): Promise<void> {
     if (options.skills) await removeSkills(qoderDir, options.skills, tracker);
     if (options.agents) await removeAgents(qoderDir, options.agents, tracker);
     if (options.mcpServices) await removeMcpServices(mcpTargetDir, options.mcpServices, tracker);
+    if (options.commands) await removeCommands(qoderDir, options.commands, tracker);
   }
 
   await writeSourceTracker(trackerPath, tracker);
@@ -57,6 +59,16 @@ async function removeAll(qoderDir: string, mcpTargetDir: string, tracker: Awaite
     // ignore
   }
   tracker.mcp = {};
+
+  // Remove all commands
+  const commandsDir = path.join(qoderDir, "commands");
+  const commandEntries = await fs.readdir(commandsDir, { withFileTypes: true }).catch(() => []);
+  for (const entry of commandEntries) {
+    if (entry.isFile() && entry.name.endsWith(".md")) {
+      await fs.rm(path.join(commandsDir, entry.name));
+    }
+  }
+  tracker.commands = {};
 }
 
 async function removeSkills(qoderDir: string, names: string[], tracker: Awaited<ReturnType<typeof readSourceTracker>>): Promise<void> {
@@ -85,5 +97,12 @@ async function removeMcpServices(mcpTargetDir: string, names: string[], tracker:
     await fs.writeFile(mcpPath, JSON.stringify(config, null, 2) + "\n", "utf-8");
   } catch {
     // mcp.json doesn't exist — nothing to remove
+  }
+}
+
+async function removeCommands(qoderDir: string, names: string[], tracker: Awaited<ReturnType<typeof readSourceTracker>>): Promise<void> {
+  for (const name of names) {
+    await fs.rm(path.join(qoderDir, "commands", `${name}.md`), { force: true });
+    delete tracker.commands[name];
   }
 }

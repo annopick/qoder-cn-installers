@@ -28,6 +28,7 @@ Add options:
   --skill <name...>            Install specific skill(s)
   --agent <name...>            Install specific agent(s)
   --mcp <name...>              Install specific MCP service(s)
+  --command <name...>          Install specific command(s)
   --path <subpath>             Subpath within repository (git sources only)
   --list                       List available resources without installing
   -y, --yes                    Skip confirmation prompts
@@ -36,13 +37,21 @@ List options:
   --skill                      List only skills
   --agent                      List only agents
   --mcp                        List only MCP services
+  --command                    List only commands
   --json                       Output in JSON format
 
 Remove options:
   --skill <name...>            Remove specific skill(s)
   --agent <name...>            Remove specific agent(s)
   --mcp <name...>              Remove specific MCP service(s)
-  --all                        Remove all resources`);
+  --command <name...>          Remove specific command(s)
+  --all                        Remove all resources
+
+Update options:
+  --skill <name...>            Update specific skill(s)
+  --agent <name...>            Update specific agent(s)
+  --mcp <name...>              Update specific MCP service(s)
+  --command <name...>          Update specific command(s)`);
   process.exit(0);
 }
 
@@ -62,6 +71,7 @@ if (command === "add" || command === "a" || command === "i" || command === "inst
     const { discoverSkills } = await import("./skills.js");
     const { discoverAgents } = await import("./agents.js");
     const { discoverMcpServices } = await import("./mcp-discovery.js");
+    const { discoverCommands } = await import("./commands.js");
 
     const source = parseSource(parsed.source);
 
@@ -79,10 +89,11 @@ if (command === "add" || command === "a" || command === "i" || command === "inst
     }
 
     try {
-    const [skills, agents, mcpServices] = await Promise.all([
+    const [skills, agents, mcpServices, commands] = await Promise.all([
       discoverSkills(scanPath),
       discoverAgents(scanPath),
       discoverMcpServices(scanPath),
+      discoverCommands(scanPath),
     ]);
 
     console.log("Available resources:");
@@ -98,6 +109,13 @@ if (command === "add" || command === "a" || command === "i" || command === "inst
       console.log("\nMCP services:");
       for (const m of mcpServices) console.log(`  - ${m.name}`);
     }
+    if (commands.length > 0) {
+      console.log("\nCommands:");
+      for (const c of commands) {
+        const desc = c.description ? `: ${c.description}` : "";
+        console.log(`  - ${c.name}${desc}`);
+      }
+    }
     } finally {
       await cleanup?.();
     }
@@ -109,16 +127,18 @@ if (command === "add" || command === "a" || command === "i" || command === "inst
     filterSkills: parsed.skills,
     filterAgents: parsed.agents,
     filterMcp: parsed.mcp,
+    filterCommands: parsed.commands,
   });
 } else if (command === "list" || command === "ls") {
   const restArgs = args.slice(1);
-  let type: "skill" | "agent" | "mcp" | undefined;
+  let type: "skill" | "agent" | "mcp" | "command" | undefined;
   let jsonOutput = false;
 
   for (const arg of restArgs) {
     if (arg === "--skill") type = "skill";
     else if (arg === "--agent") type = "agent";
     else if (arg === "--mcp") type = "mcp";
+    else if (arg === "--command") type = "command";
     else if (arg === "--json") jsonOutput = true;
   }
 
@@ -143,7 +163,11 @@ if (command === "add" || command === "a" || command === "i" || command === "inst
       console.log("MCP services:");
       for (const name of result.mcp) console.log(`  - ${name}`);
     }
-    if (result.skills.length === 0 && result.agents.length === 0 && result.mcp.length === 0) {
+    if (result.commands.length > 0) {
+      console.log("Commands:");
+      for (const name of result.commands) console.log(`  - ${name}`);
+    }
+    if (result.skills.length === 0 && result.agents.length === 0 && result.mcp.length === 0 && result.commands.length === 0) {
       console.log("No resources installed.");
     }
   }
@@ -152,6 +176,7 @@ if (command === "add" || command === "a" || command === "i" || command === "inst
   let skills: string[] = [];
   let agents: string[] = [];
   let mcpServices: string[] = [];
+  let commands: string[] = [];
   let all = false;
 
   for (let i = 0; i < restArgs.length; i++) {
@@ -159,6 +184,7 @@ if (command === "add" || command === "a" || command === "i" || command === "inst
     if (arg === "--skill") { skills = collectValues(restArgs, ++i); i += skills.length - 1; }
     else if (arg === "--agent") { agents = collectValues(restArgs, ++i); i += agents.length - 1; }
     else if (arg === "--mcp") { mcpServices = collectValues(restArgs, ++i); i += mcpServices.length - 1; }
+    else if (arg === "--command") { commands = collectValues(restArgs, ++i); i += commands.length - 1; }
     else if (arg === "--all") all = true;
   }
 
@@ -168,6 +194,7 @@ if (command === "add" || command === "a" || command === "i" || command === "inst
     skills: skills.length > 0 ? skills : undefined,
     agents: agents.length > 0 ? agents : undefined,
     mcpServices: mcpServices.length > 0 ? mcpServices : undefined,
+    commands: commands.length > 0 ? commands : undefined,
     all,
   });
   console.log("Removed successfully.");
@@ -176,12 +203,14 @@ if (command === "add" || command === "a" || command === "i" || command === "inst
   let filterSkills: string[] = [];
   let filterAgents: string[] = [];
   let filterMcp: string[] = [];
+  let filterCommands: string[] = [];
 
   for (let i = 0; i < restArgs.length; i++) {
     const arg = restArgs[i];
     if (arg === "--skill") { filterSkills = collectValues(restArgs, ++i); i += filterSkills.length - 1; }
     else if (arg === "--agent") { filterAgents = collectValues(restArgs, ++i); i += filterAgents.length - 1; }
     else if (arg === "--mcp") { filterMcp = collectValues(restArgs, ++i); i += filterMcp.length - 1; }
+    else if (arg === "--command") { filterCommands = collectValues(restArgs, ++i); i += filterCommands.length - 1; }
   }
 
   const { runUpdate } = await import("./cli-update.js");
@@ -191,6 +220,7 @@ if (command === "add" || command === "a" || command === "i" || command === "inst
     filterSkills: filterSkills.length > 0 ? filterSkills : undefined,
     filterAgents: filterAgents.length > 0 ? filterAgents : undefined,
     filterMcp: filterMcp.length > 0 ? filterMcp : undefined,
+    filterCommands: filterCommands.length > 0 ? filterCommands : undefined,
   });
 
   if (result.updated.length > 0) {

@@ -2,6 +2,7 @@ import { parseSource } from "./source-parser.js";
 import { discoverSkills } from "./skills.js";
 import { installSkill } from "./installer.js";
 import { discoverAgents } from "./agents.js";
+import { discoverCommands } from "./commands.js";
 import { discoverMcpServices } from "./mcp-discovery.js";
 import { mergeMcpConfig, type McpConfig } from "./mcp-merger.js";
 import { cloneRepo } from "./git.js";
@@ -17,6 +18,7 @@ export interface AddOptions {
   filterSkills?: string[];
   filterAgents?: string[];
   filterMcp?: string[];
+  filterCommands?: string[];
 }
 
 const DEFAULT_QODER_DIR = path.join(
@@ -60,9 +62,10 @@ export async function runAdd(source: string, options: AddOptions = {}): Promise<
     let skills = await discoverSkills(scanPath);
     let agents = await discoverAgents(scanPath);
     let mcpServices = await discoverMcpServices(scanPath);
+    let commands = await discoverCommands(scanPath);
 
     // Apply filters — when any filter is specified, unfiltered types are excluded
-    const hasAnyFilter = options.filterSkills || options.filterAgents || options.filterMcp;
+    const hasAnyFilter = options.filterSkills || options.filterAgents || options.filterMcp || options.filterCommands;
     if (hasAnyFilter) {
       if (options.filterSkills) {
         skills = skills.filter((s) => options.filterSkills!.includes(s.name));
@@ -79,9 +82,14 @@ export async function runAdd(source: string, options: AddOptions = {}): Promise<
       } else {
         mcpServices = [];
       }
+      if (options.filterCommands) {
+        commands = commands.filter((c) => options.filterCommands!.includes(c.name));
+      } else {
+        commands = [];
+      }
     }
 
-    if (skills.length === 0 && agents.length === 0 && mcpServices.length === 0) {
+    if (skills.length === 0 && agents.length === 0 && mcpServices.length === 0 && commands.length === 0) {
       console.log("No resources found in the source.");
       return;
     }
@@ -139,12 +147,27 @@ export async function runAdd(source: string, options: AddOptions = {}): Promise<
       await fs.writeFile(mcpTargetPath, JSON.stringify(merged, null, 2) + "\n", "utf-8");
     }
 
+    // Install commands
+    const commandsDir = path.join(qoderDir, "commands");
+    if (commands.length > 0) {
+      await fs.mkdir(commandsDir, { recursive: true });
+    }
+    for (const command of commands) {
+      const destPath = path.join(commandsDir, `${command.name}.md`);
+      await fs.copyFile(command.path, destPath);
+      tracker.commands[command.name] = {
+        source: sourceId,
+        ref: await computeFileHash(command.path),
+      };
+    }
+
     await writeSourceTracker(trackerPath, tracker);
 
     const parts: string[] = [];
     if (skills.length > 0) parts.push(`${skills.length} skill(s)`);
     if (agents.length > 0) parts.push(`${agents.length} agent(s)`);
     if (mcpServices.length > 0) parts.push(`${mcpServices.length} MCP service(s)`);
+    if (commands.length > 0) parts.push(`${commands.length} command(s)`);
     console.log(`Installed ${parts.join(", ")}`);
   } finally {
     await cleanup?.();

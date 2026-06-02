@@ -34,6 +34,7 @@ describe("runUpdate", () => {
         skills: { "my-skill": { source: repoDir, ref: "old-hash" } },
         agents: {},
         mcp: {},
+        commands: {},
       }),
     );
   });
@@ -100,6 +101,7 @@ describe("runUpdate", () => {
         skills: {},
         agents: {},
         mcp: { github: { source: repoDir, ref: "old-hash" } },
+        commands: {},
       }),
     );
 
@@ -116,5 +118,55 @@ describe("runUpdate", () => {
 
     assert.equal(result.updated.length, 0);
     assert.equal(result.skipped.length, 0);
+  });
+
+  it("updates command when content has changed", async () => {
+    // Create source command
+    const commandsDir = path.join(repoDir, "commands");
+    await fs.mkdir(commandsDir, { recursive: true });
+    await fs.writeFile(path.join(commandsDir, "code-inspect.md"), "---\ndescription: v1\n---\nv1 content");
+
+    // Install first
+    const { runAdd } = await import("./cli-add.js");
+    await runAdd(repoDir, { qoderDir, mcpTargetDir, filterCommands: ["code-inspect"] });
+
+    // Modify source
+    await fs.writeFile(path.join(commandsDir, "code-inspect.md"), "---\ndescription: v2\n---\nv2 content");
+
+    // Reset tracker to only contain command
+    const tracker = JSON.parse(await fs.readFile(path.join(qoderDir, ".qci.source.json"), "utf-8"));
+    await fs.writeFile(
+      path.join(qoderDir, ".qci.source.json"),
+      JSON.stringify({ skills: {}, agents: {}, mcp: {}, commands: tracker.commands }),
+    );
+
+    const result = await runUpdate({ qoderDir, mcpTargetDir });
+
+    assert.equal(result.updated.length, 1);
+    assert.equal(result.updated[0], "code-inspect");
+
+    const md = await fs.readFile(path.join(qoderDir, "commands", "code-inspect.md"), "utf-8");
+    assert.ok(md.includes("v2 content"));
+  });
+
+  it("skips command when content unchanged", async () => {
+    const commandsDir = path.join(repoDir, "commands");
+    await fs.mkdir(commandsDir, { recursive: true });
+    await fs.writeFile(path.join(commandsDir, "code-inspect.md"), "---\ndescription: v1\n---\nv1 content");
+
+    const { runAdd } = await import("./cli-add.js");
+    await runAdd(repoDir, { qoderDir, mcpTargetDir, filterCommands: ["code-inspect"] });
+
+    // Reset tracker to only contain command
+    const tracker = JSON.parse(await fs.readFile(path.join(qoderDir, ".qci.source.json"), "utf-8"));
+    await fs.writeFile(
+      path.join(qoderDir, ".qci.source.json"),
+      JSON.stringify({ skills: {}, agents: {}, mcp: {}, commands: tracker.commands }),
+    );
+
+    const result = await runUpdate({ qoderDir, mcpTargetDir });
+
+    assert.equal(result.skipped.length, 1);
+    assert.equal(result.skipped[0], "code-inspect");
   });
 });
