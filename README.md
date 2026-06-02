@@ -40,15 +40,21 @@ qci add <source> [options]
 | 选项 | 说明 |
 |------|------|
 | `--all` | 安装所有发现的资源 |
-| `--skill <name...>` | 只安装指定的 Skill |
-| `--agent <name...>` | 只安装指定的 Agent |
-| `--mcp <name...>` | 只安装指定的 MCP 服务 |
-| `--command <name...>` | 只安装指定的指令 |
+| `--skill [name...]` | 只安装 Skill（不指定名字则安装所有 Skill） |
+| `--agent [name...]` | 只安装 Agent（不指定名字则安装所有 Agent） |
+| `--mcp [name...]` | 只安装 MCP 服务（不指定名字则安装所有 MCP） |
+| `--command [name...]` | 只安装指令（不指定名字则安装所有指令） |
 | `--path <subpath>` | 指定仓库内的子目录（仅 Git 来源） |
 | `--list` | 列出可用资源，不安装 |
 | `-y, --yes` | 跳过确认提示 |
 
 ```bash
+# 只安装所有 Skill（其他类型不装）
+qci add https://github.com/org/repo --skill
+
+# 安装所有 Skill 和所有指令
+qci add https://github.com/org/repo --skill --command
+
 # 只安装指定的 Skill 和 MCP
 qci add https://github.com/org/repo --skill code-review --mcp github
 
