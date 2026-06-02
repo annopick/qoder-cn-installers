@@ -1,6 +1,6 @@
 {
   "name": "@annopick/qci",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "CLI installer for QoderCN Desktop skills, agents and MCP resources",
   "type": "module",
   "bin": {
