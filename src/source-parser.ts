@@ -38,5 +38,5 @@ function isGitSsh(input: string): boolean {
 }
 
 function isGitUrl(input: string): boolean {
-  return /^https?:\/\/.+/.test(input);
+  return /^(https?|file):\/\/.+/.test(input);
 }

@@ -120,6 +120,85 @@ describe("runUpdate", () => {
     assert.equal(result.skipped.length, 0);
   });
 
+  it("skips other resource types when only skill filter is specified", async () => {
+    // Set up agent source
+    const agentFile = path.join(repoDir, "agents", "my-agent.md");
+    await fs.mkdir(path.dirname(agentFile), { recursive: true });
+    await fs.writeFile(agentFile, "---\nname: my-agent\ndescription: v1\n---\nv1 content");
+
+    // Set up command source
+    const cmdFile = path.join(repoDir, "commands", "my-command.md");
+    await fs.mkdir(path.dirname(cmdFile), { recursive: true });
+    await fs.writeFile(cmdFile, "---\nname: my-command\ndescription: v1\n---\nv1 content");
+
+    // Update tracker with multiple resource types
+    await fs.writeFile(
+      path.join(qoderDir, ".qci.source.json"),
+      JSON.stringify({
+        skills: { "my-skill": { source: repoDir, ref: "old-hash" } },
+        agents: { "my-agent": { source: repoDir, ref: "old-hash" } },
+        mcp: {},
+        commands: { "my-command": { source: repoDir, ref: "old-hash" } },
+      }),
+    );
+
+    // Install agent and command files
+    await fs.mkdir(path.join(qoderDir, "agents"), { recursive: true });
+    await fs.copyFile(agentFile, path.join(qoderDir, "agents", "my-agent.md"));
+    await fs.mkdir(path.join(qoderDir, "commands"), { recursive: true });
+    await fs.copyFile(cmdFile, path.join(qoderDir, "commands", "my-command.md"));
+
+    // Only request skill update
+    const result = await runUpdate({ qoderDir, mcpTargetDir, filterSkills: ["my-skill"] });
+
+    // Skill should be updated (hash changed from "old-hash")
+    assert.equal(result.updated.length, 1);
+    assert.equal(result.updated[0], "my-skill");
+    // Other types should not appear in skipped or updated
+    assert.equal(result.skipped.length, 0);
+  });
+
+  it("handles git URL source by cloning and computing hash correctly", async () => {
+    // Create a local git repo with a skill
+    const localRepo = path.join(tmpDir, "git-repo");
+    await fs.mkdir(localRepo, { recursive: true });
+    const skillDir = path.join(localRepo, "skills", "git-skill");
+    await fs.mkdir(skillDir, { recursive: true });
+    await fs.writeFile(
+      path.join(skillDir, "SKILL.md"),
+      "---\nname: git-skill\ndescription: v1\n---\nv1 content",
+    );
+
+    // Initialize git repo
+    const { execFile: execFileCb } = await import("node:child_process");
+    const { promisify } = await import("node:util");
+    const execFileAsync = promisify(execFileCb);
+    const env = { ...process.env, GIT_AUTHOR_NAME: "test", GIT_AUTHOR_EMAIL: "test@test.com", GIT_COMMITTER_NAME: "test", GIT_COMMITTER_EMAIL: "test@test.com" };
+    await execFileAsync("git", ["init"], { cwd: localRepo });
+    await execFileAsync("git", ["add", "."], { cwd: localRepo });
+    await execFileAsync("git", ["commit", "-m", "init"], { cwd: localRepo, env });
+
+    // Set tracker with git URL source
+    await fs.writeFile(
+      path.join(qoderDir, ".qci.source.json"),
+      JSON.stringify({
+        skills: { "git-skill": { source: `file://${localRepo}`, ref: "old-hash" } },
+        agents: {},
+        mcp: {},
+        commands: {},
+      }),
+    );
+
+    const result = await runUpdate({ qoderDir, mcpTargetDir });
+
+    assert.equal(result.updated.length, 1);
+    assert.equal(result.updated[0], "git-skill");
+
+    // Verify the skill was installed
+    const md = await fs.readFile(path.join(qoderDir, "skills", "git-skill", "SKILL.md"), "utf-8");
+    assert.ok(md.includes("v1 content"));
+  });
+
   it("updates command when content has changed", async () => {
     // Create source command
     const commandsDir = path.join(repoDir, "commands");
