@@ -75,7 +75,8 @@ export async function runUpdate(options: UpdateOptions): Promise<UpdateResult> {
             tracker.skills[name] = { source: entry.source, ref: currentHash };
             result.updated.push(name);
           }
-        } catch {
+        } catch (err) {
+          console.error(`[qci] Skill "${name}" update failed:`, err);
           result.skipped.push(name);
         }
       }
@@ -103,7 +104,8 @@ export async function runUpdate(options: UpdateOptions): Promise<UpdateResult> {
           await fs.copyFile(agent.path, destPath);
           tracker.agents[name] = { source: entry.source, ref: currentHash };
           result.updated.push(name);
-        } catch {
+        } catch (err) {
+          console.error(`[qci] Agent "${name}" update failed:`, err);
           result.skipped.push(name);
         }
       }
@@ -145,7 +147,8 @@ export async function runUpdate(options: UpdateOptions): Promise<UpdateResult> {
           await fs.writeFile(mcpPath, JSON.stringify(config, null, 2) + "\n", "utf-8");
           tracker.mcp[name] = { source: entry.source, ref: currentHash };
           result.updated.push(name);
-        } catch {
+        } catch (err) {
+          console.error(`[qci] MCP "${name}" update failed:`, err);
           result.skipped.push(name);
         }
       }
@@ -173,7 +176,8 @@ export async function runUpdate(options: UpdateOptions): Promise<UpdateResult> {
           await fs.copyFile(command.path, destPath);
           tracker.commands[name] = { source: entry.source, ref: currentHash };
           result.updated.push(name);
-        } catch {
+        } catch (err) {
+          console.error(`[qci] Command "${name}" update failed:`, err);
           result.skipped.push(name);
         }
       }
