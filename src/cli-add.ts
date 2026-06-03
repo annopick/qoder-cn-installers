@@ -188,7 +188,8 @@ async function computeDirHash(dirPath: string): Promise<string> {
   const entries = await walkDir(dirPath);
   for (const filePath of entries.sort()) {
     const content = await fs.readFile(filePath);
-    hash.update(filePath).update(content);
+    const relativePath = path.relative(dirPath, filePath);
+    hash.update(relativePath).update(content);
   }
   return hash.digest("hex").slice(0, 12);
 }
