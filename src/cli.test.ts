@@ -367,19 +367,26 @@ GitHub MCP server configuration.
     await fs.rm(tmpDir, { recursive: true, force: true });
   });
 
-  it("installs MCP.md and preserves the original file", async () => {
-    await runAdd(repoDir, { qoderDir, mcpTargetDir });
+  it("installs MCP.md, substitutes variables, and preserves the original file", async () => {
+    await runAdd(repoDir, { qoderDir, mcpTargetDir, mcpEnv: { GITHUB_TOKEN: "ghp_test123" } });
 
-    // mcp.json should contain the JSON with placeholder
+    // mcp.json should contain the substituted value
     const mcpJson = JSON.parse(await fs.readFile(path.join(mcpTargetDir, "mcp.json"), "utf-8"));
     assert.ok(mcpJson.mcpServers.github);
-    assert.equal(mcpJson.mcpServers.github.env.GITHUB_TOKEN, "{{GITHUB_TOKEN}}");
+    assert.equal(mcpJson.mcpServers.github.env.GITHUB_TOKEN, "ghp_test123");
 
-    // Original MCP.md should be preserved
+    // Original MCP.md should be preserved (with placeholder intact)
     const preservedPath = path.join(qoderDir, "mcp", "github", "MCP.md");
     const preservedContent = await fs.readFile(preservedPath, "utf-8");
     assert.ok(preservedContent.includes("GITHUB_TOKEN"));
     assert.ok(preservedContent.includes("variables:"));
+  });
+
+  it("errors when a required MCP variable has no value", async () => {
+    await assert.rejects(
+      () => runAdd(repoDir, { qoderDir, mcpTargetDir }),
+      /Missing required MCP variable "GITHUB_TOKEN"/,
+    );
   });
 
   it("preserves MCP.md even when mcp.json already exists", async () => {
@@ -390,7 +397,7 @@ GitHub MCP server configuration.
       JSON.stringify({ mcpServers: { github: { command: "existing" } } }),
     );
 
-    await runAdd(repoDir, { qoderDir, mcpTargetDir });
+    await runAdd(repoDir, { qoderDir, mcpTargetDir, mcpEnv: { GITHUB_TOKEN: "ghp_test" } });
 
     // Original should be preserved
     const preservedPath = path.join(qoderDir, "mcp", "github", "MCP.md");
@@ -448,20 +455,20 @@ variables:
     await fs.rm(tmpDir, { recursive: true, force: true });
   });
 
-  it("preserves {{VAR}} placeholder in args URL through install pipeline", async () => {
-    await runAdd(repoDir, { qoderDir, mcpTargetDir });
+  it("substitutes {{VAR}} placeholder in args URL at install time", async () => {
+    await runAdd(repoDir, { qoderDir, mcpTargetDir, mcpEnv: { PRIVATE_TOKEN: "tok123" } });
 
-    // mcp.json should preserve the placeholder in args URL
+    // mcp.json should contain the substituted value in args URL
     const mcpJson = JSON.parse(await fs.readFile(path.join(mcpTargetDir, "mcp.json"), "utf-8"));
     const serverConfig = mcpJson.mcpServers["my-private-mcp"];
     assert.ok(serverConfig);
     assert.equal(serverConfig.command, "uvx");
     assert.equal(
       serverConfig.args[1],
-      "https://user:{{PRIVATE_TOKEN}}@private-registry.example.com/org/pypi/-/packages/simple",
+      "https://user:tok123@private-registry.example.com/org/pypi/-/packages/simple",
     );
 
-    // Preserved MCP.md should contain variable definition for Desktop
+    // Preserved MCP.md should still contain the original placeholder
     const preservedPath = path.join(qoderDir, "mcp", "my-private-mcp", "MCP.md");
     const preservedContent = await fs.readFile(preservedPath, "utf-8");
     assert.ok(preservedContent.includes("PRIVATE_TOKEN"));

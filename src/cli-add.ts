@@ -7,6 +7,7 @@ import { discoverMcpServices } from "./mcp-discovery.js";
 import { mergeMcpConfig, type McpConfig } from "./mcp-merger.js";
 import { cloneRepo } from "./git.js";
 import { readSourceTracker, writeSourceTracker } from "./source-tracker.js";
+import { resolveVariableValues, substituteVariables } from "./mcp-substitute.js";
 import { debug } from "./log.js";
 import path from "node:path";
 import { createHash } from "node:crypto";
@@ -20,6 +21,8 @@ export interface AddOptions {
   filterAgents?: string[];
   filterMcp?: string[];
   filterCommands?: string[];
+  /** Values for MCP.md variables, keyed by variable name (from --env). */
+  mcpEnv?: Record<string, string>;
 }
 
 const DEFAULT_QODER_DIR = path.join(
@@ -162,13 +165,22 @@ export async function runAdd(source: string, options: AddOptions = {}): Promise<
 
       let merged = existing ?? { mcpServers: {} };
       for (const service of mcpServices) {
-        merged = mergeMcpConfig(merged, service.config);
+        // Substitute {{VAR}} placeholders using --env values / process.env.
+        // Throws if a required variable can't be resolved — caught by the
+        // top-level handler and surfaced as a clear error to the user.
+        const values = resolveVariableValues(service.variables, options.mcpEnv);
+        if (service.variables.length > 0) {
+          debug(`MCP "${service.name}" variables resolved: ${service.variables.map((v) => v.name).join(", ")}`);
+        }
+        const substitutedConfig = substituteVariables(service.config, values);
+        merged = mergeMcpConfig(merged, substitutedConfig);
         tracker.mcp[service.name] = {
           source: sourceId,
           ref: await computeFileHash(service.sourcePath),
         };
 
-        // Preserve original MCP.md for Desktop to read variable definitions
+        // Preserve original MCP.md (with placeholders intact) so Desktop can
+        // still read the variable definitions / descriptions.
         const mcpPreserveDir = path.join(qoderDir, "mcp", service.name);
         await fs.mkdir(mcpPreserveDir, { recursive: true });
         const mcpPreservePath = path.join(mcpPreserveDir, "MCP.md");

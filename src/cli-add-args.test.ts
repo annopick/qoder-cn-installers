@@ -74,6 +74,40 @@ describe("parseAddArgs", () => {
     assert.deepStrictEqual(result.commands, ["a", "b"]);
   });
 
+  it("parses --env flag with single KEY=VALUE", () => {
+    const result = parseAddArgs(["https://github.com/owner/repo", "--env", "TOKEN=abc"]);
+    assert.deepStrictEqual(result.env, ["TOKEN=abc"]);
+  });
+
+  it("parses -e short form", () => {
+    const result = parseAddArgs(["https://github.com/owner/repo", "-e", "TOKEN=abc"]);
+    assert.deepStrictEqual(result.env, ["TOKEN=abc"]);
+  });
+
+  it("parses --env with multiple values in one flag", () => {
+    const result = parseAddArgs(["https://github.com/owner/repo", "--env", "A=1", "B=2"]);
+    assert.deepStrictEqual(result.env, ["A=1", "B=2"]);
+  });
+
+  it("aggregates repeated --env flags", () => {
+    const result = parseAddArgs(["https://github.com/owner/repo", "--env", "A=1", "--env", "B=2"]);
+    assert.deepStrictEqual(result.env, ["A=1", "B=2"]);
+  });
+
+  it("throws on invalid --env format (missing =)", () => {
+    assert.throws(
+      () => parseAddArgs(["https://github.com/owner/repo", "--env", "NOEQUALS"]),
+      /Invalid --env value "NOEQUALS"/,
+    );
+  });
+
+  it("throws on invalid --env format (empty value)", () => {
+    assert.throws(
+      () => parseAddArgs(["https://github.com/owner/repo", "--env", "KEY="]),
+      /Invalid --env value "KEY="/,
+    );
+  });
+
   it("throws when no source provided", () => {
     assert.throws(() => parseAddArgs([]), /source is required/i);
   });

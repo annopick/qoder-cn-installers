@@ -30,6 +30,7 @@ Add options:
   --agent <name...>            Install specific agent(s)
   --mcp <name...>              Install specific MCP service(s)
   --command <name...>          Install specific command(s)
+  -e, --env KEY=VALUE          MCP variable value (repeatable, e.g. --env TOKEN=xxx)
   --path <subpath>             Subpath within repository (git sources only)
   --list                       List available resources without installing
   -y, --yes                    Skip confirmation prompts
@@ -136,12 +137,16 @@ if (command === "add" || command === "a" || command === "i" || command === "inst
     process.exit(0);
   }
 
+  // Parse --env KEY=VALUE tokens into a { KEY: VALUE } object for MCP variables.
+  const mcpEnv = parseEnvVars(parsed.env);
+
   await runAdd(parsed.source, {
     subpath: parsed.subpath,
     filterSkills: parsed.skills,
     filterAgents: parsed.agents,
     filterMcp: parsed.mcp,
     filterCommands: parsed.commands,
+    mcpEnv,
   });
 } else if (command === "list" || command === "ls") {
   const restArgs = args.slice(1);
@@ -266,4 +271,17 @@ function collectValues(args: string[], startIdx: number): string[] {
     i++;
   }
   return values;
+}
+
+/** Parse `["KEY=VALUE", ...]` tokens (from --env) into a `{ KEY: VALUE }` map. */
+function parseEnvVars(env: string[] | undefined): Record<string, string> | undefined {
+  if (!env || env.length === 0) return undefined;
+  const map: Record<string, string> = {};
+  for (const token of env) {
+    const eq = token.indexOf("=");
+    const key = token.slice(0, eq);
+    const value = token.slice(eq + 1);
+    map[key] = value;
+  }
+  return map;
 }

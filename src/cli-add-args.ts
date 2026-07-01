@@ -5,6 +5,7 @@ export interface AddArgs {
   mcp?: string[];
   commands?: string[];
   subpath?: string;
+  env?: string[];
   all: boolean;
   yes: boolean;
   list: boolean;
@@ -52,6 +53,17 @@ export function parseAddArgs(args: string[]): AddArgs {
     } else if (arg === "--path") {
       i++;
       result.subpath = args[i];
+    } else if (arg === "--env" || arg === "-e") {
+      i++;
+      const envVals = collectValues(args, i);
+      // Each token must be KEY=VALUE
+      for (const ev of envVals) {
+        if (!/^[^=]+=.+/.test(ev)) {
+          throw new Error(`Invalid --env value "${ev}". Expected format: KEY=VALUE (e.g. --env CNB_TOKEN=xxx).`);
+        }
+      }
+      result.env = result.env ? [...result.env, ...envVals] : envVals;
+      i += envVals.length - 1;
     } else if (!arg.startsWith("-")) {
       result.source = arg;
     }
