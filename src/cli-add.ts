@@ -7,6 +7,7 @@ import { discoverMcpServices } from "./mcp-discovery.js";
 import { mergeMcpConfig, type McpConfig } from "./mcp-merger.js";
 import { cloneRepo } from "./git.js";
 import { readSourceTracker, writeSourceTracker } from "./source-tracker.js";
+import { debug } from "./log.js";
 import path from "node:path";
 import { createHash } from "node:crypto";
 import fs from "node:fs/promises";
@@ -99,6 +100,21 @@ export async function runAdd(source: string, options: AddOptions = {}): Promise<
     }
 
     if (skills.length === 0 && agents.length === 0 && mcpServices.length === 0 && commands.length === 0) {
+      // Diagnose why nothing was found: an empty clone dir suggests the clone
+      // silently failed (e.g. sandbox swallowed a non-zero git exit), while a
+      // populated dir without the expected subdirs points to a structure issue.
+      debug(`scanPath: ${scanPath}`);
+      try {
+        const entries = await fs.readdir(scanPath, { withFileTypes: true });
+        debug(`scanPath entries: [${entries.map((e) => e.name + (e.isDirectory() ? "/" : "")).join(", ")}]`);
+        for (const dir of ["skills", "agents", "mcp", "commands"]) {
+          const exists = entries.some((e) => e.name === dir && e.isDirectory());
+          debug(`  ${dir}/ exists: ${exists}`);
+        }
+      } catch {
+        debug("scanPath is empty or unreadable (clone may have produced nothing).");
+      }
+
       console.log("No resources found in the source.");
       return;
     }

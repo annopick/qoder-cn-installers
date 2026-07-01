@@ -3,6 +3,7 @@ import { runAdd } from "./cli-add.js";
 import { parseAddArgs } from "./cli-add-args.js";
 import { runList } from "./cli-list.js";
 import { runRemove } from "./cli-remove.js";
+import { setVerbose, debug } from "./log.js";
 import path from "node:path";
 
 const home = process.env.HOME || process.env.USERPROFILE || "~";
@@ -51,17 +52,30 @@ Update options:
   --skill <name...>            Update specific skill(s)
   --agent <name...>            Update specific agent(s)
   --mcp <name...>              Update specific MCP service(s)
-  --command <name...>          Update specific command(s)`);
+  --command <name...>          Update specific command(s)
+
+Global options:
+  -v, --verbose                Show debug diagnostics (clone details, errors)`);
   process.exit(0);
 }
 
-const args = process.argv.slice(2);
+// Pre-scan for the global -v / --verbose flag anywhere in argv, then strip it
+// so `qci -v add <src>` and `qci add <src> -v` both work. Must run before
+// treating args[0] as the command.
+const args = process.argv.slice(2).filter((a) => {
+  if (a === "-v" || a === "--verbose") {
+    setVerbose(true);
+    return false;
+  }
+  return true;
+});
 const command = args[0];
 
 if (!command || command === "--help" || command === "-h") {
   showHelp();
 }
 
+try {
 if (command === "add" || command === "a" || command === "i" || command === "install") {
   const parsed = parseAddArgs(args.slice(1));
 
@@ -234,6 +248,13 @@ if (command === "add" || command === "a" || command === "i" || command === "inst
   }
 } else {
   console.error(`Unknown command: "${command}". Run "qci --help" for usage.`);
+  process.exit(1);
+}
+} catch (err) {
+  // Top-level guard: print a clean message instead of a raw stack trace.
+  const message = err instanceof Error ? err.message : String(err);
+  console.error(`[qci] ${message}`);
+  if (err instanceof Error && err.stack) debug(err.stack);
   process.exit(1);
 }
 
