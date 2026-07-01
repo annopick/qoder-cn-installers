@@ -151,6 +151,12 @@ export async function runAdd(source: string, options: AddOptions = {}): Promise<
           source: sourceId,
           ref: await computeFileHash(service.sourcePath),
         };
+
+        // Preserve original MCP.md for Desktop to read variable definitions
+        const mcpPreserveDir = path.join(qoderDir, "mcp", service.name);
+        await fs.mkdir(mcpPreserveDir, { recursive: true });
+        const mcpPreservePath = path.join(mcpPreserveDir, "MCP.md");
+        await fs.copyFile(service.sourcePath, mcpPreservePath);
       }
 
       await fs.writeFile(mcpTargetPath, JSON.stringify(merged, null, 2) + "\n", "utf-8");

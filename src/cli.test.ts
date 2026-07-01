@@ -317,3 +317,154 @@ describe("CLI add (filter)", () => {
     assert.equal(agentsExist, false);
   });
 });
+
+describe("CLI add (MCP.md format)", () => {
+  let tmpDir: string;
+  let repoDir: string;
+  let qoderDir: string;
+  let mcpTargetDir: string;
+
+  beforeEach(async () => {
+    tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "qci-test-"));
+    repoDir = path.join(tmpDir, "repo");
+    qoderDir = path.join(tmpDir, "qoder-cn");
+    mcpTargetDir = path.join(tmpDir, "SharedClientCache");
+
+    // MCP.md with variables
+    const mcpDir = path.join(repoDir, "mcp", "github");
+    await fs.mkdir(mcpDir, { recursive: true });
+    await fs.writeFile(
+      path.join(mcpDir, "MCP.md"),
+      `---
+name: github
+description: GitHub MCP server
+variables:
+  - name: GITHUB_TOKEN
+    description: GitHub API token
+    type: string
+    required: true
+    sensitive: true
+---
+
+GitHub MCP server configuration.
+
+\`\`\`json
+{
+  "mcpServers": {
+    "github": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "env": { "GITHUB_TOKEN": "{{GITHUB_TOKEN}}" }
+    }
+  }
+}
+\`\`\`
+`,
+    );
+  });
+
+  afterEach(async () => {
+    await fs.rm(tmpDir, { recursive: true, force: true });
+  });
+
+  it("installs MCP.md and preserves the original file", async () => {
+    await runAdd(repoDir, { qoderDir, mcpTargetDir });
+
+    // mcp.json should contain the JSON with placeholder
+    const mcpJson = JSON.parse(await fs.readFile(path.join(mcpTargetDir, "mcp.json"), "utf-8"));
+    assert.ok(mcpJson.mcpServers.github);
+    assert.equal(mcpJson.mcpServers.github.env.GITHUB_TOKEN, "{{GITHUB_TOKEN}}");
+
+    // Original MCP.md should be preserved
+    const preservedPath = path.join(qoderDir, "mcp", "github", "MCP.md");
+    const preservedContent = await fs.readFile(preservedPath, "utf-8");
+    assert.ok(preservedContent.includes("GITHUB_TOKEN"));
+    assert.ok(preservedContent.includes("variables:"));
+  });
+
+  it("preserves MCP.md even when mcp.json already exists", async () => {
+    // Pre-create mcp.json
+    await fs.mkdir(mcpTargetDir, { recursive: true });
+    await fs.writeFile(
+      path.join(mcpTargetDir, "mcp.json"),
+      JSON.stringify({ mcpServers: { github: { command: "existing" } } }),
+    );
+
+    await runAdd(repoDir, { qoderDir, mcpTargetDir });
+
+    // Original should be preserved
+    const preservedPath = path.join(qoderDir, "mcp", "github", "MCP.md");
+    const preservedContent = await fs.readFile(preservedPath, "utf-8");
+    assert.ok(preservedContent.includes("variables:"));
+  });
+});
+
+describe("CLI add (MCP.md with variable in args URL)", () => {
+  let tmpDir: string;
+  let repoDir: string;
+  let qoderDir: string;
+  let mcpTargetDir: string;
+
+  beforeEach(async () => {
+    tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "qci-test-"));
+    repoDir = path.join(tmpDir, "repo");
+    qoderDir = path.join(tmpDir, "qoder-cn");
+    mcpTargetDir = path.join(tmpDir, "SharedClientCache");
+
+    const mcpDir = path.join(repoDir, "mcp", "my-private-mcp");
+    await fs.mkdir(mcpDir, { recursive: true });
+    await fs.writeFile(
+      path.join(mcpDir, "MCP.md"),
+      `---
+name: my-private-mcp
+description: Private MCP server with token in URL
+variables:
+  - name: PRIVATE_TOKEN
+    description: Token for private package registry
+    type: string
+    required: true
+    sensitive: true
+---
+
+\`\`\`json
+{
+  "mcpServers": {
+    "my-private-mcp": {
+      "command": "uvx",
+      "args": [
+        "--index-url",
+        "https://user:{{PRIVATE_TOKEN}}@private-registry.example.com/org/pypi/-/packages/simple",
+        "my-private-mcp-pkg"
+      ]
+    }
+  }
+}
+\`\`\`
+`,
+    );
+  });
+
+  afterEach(async () => {
+    await fs.rm(tmpDir, { recursive: true, force: true });
+  });
+
+  it("preserves {{VAR}} placeholder in args URL through install pipeline", async () => {
+    await runAdd(repoDir, { qoderDir, mcpTargetDir });
+
+    // mcp.json should preserve the placeholder in args URL
+    const mcpJson = JSON.parse(await fs.readFile(path.join(mcpTargetDir, "mcp.json"), "utf-8"));
+    const serverConfig = mcpJson.mcpServers["my-private-mcp"];
+    assert.ok(serverConfig);
+    assert.equal(serverConfig.command, "uvx");
+    assert.equal(
+      serverConfig.args[1],
+      "https://user:{{PRIVATE_TOKEN}}@private-registry.example.com/org/pypi/-/packages/simple",
+    );
+
+    // Preserved MCP.md should contain variable definition for Desktop
+    const preservedPath = path.join(qoderDir, "mcp", "my-private-mcp", "MCP.md");
+    const preservedContent = await fs.readFile(preservedPath, "utf-8");
+    assert.ok(preservedContent.includes("PRIVATE_TOKEN"));
+    assert.ok(preservedContent.includes("sensitive: true"));
+  });
+});

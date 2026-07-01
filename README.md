@@ -119,7 +119,8 @@ repo/
 │   └── <agent-name>.md       # 必须含 name 和 description 的 YAML frontmatter
 ├── mcp/
 │   └── <mcp-name>/
-│       └── mcp.json           # 标准 mcpServers JSON 结构
+│       ├── MCP.md             # 推荐：YAML frontmatter + JSON 正文，支持变量占位符
+│       └── mcp.json           # 兼容旧格式：标准 mcpServers JSON 结构
 └── commands/
     └── <command-name>.md      # 可选含 description 的 YAML frontmatter
 ```
@@ -155,7 +156,78 @@ tools: Read, Grep, Bash
 
 ### MCP（Model Context Protocol）
 
-标准 `mcpServers` JSON 结构：
+支持两种格式，`MCP.md` 优先，不存在时回退到 `mcp.json`。
+
+#### MCP.md（推荐）
+
+YAML frontmatter 定义变量元数据，JSON 正文中使用 `{{VAR_NAME}}` 占位符引用。安装时原始文件会被保留到 `~/.qoder-cn/mcp/<name>/MCP.md`，由 QoderCN Desktop 在运行时替换变量值。
+
+```markdown
+---
+name: github
+description: GitHub MCP server
+variables:
+  - name: GITHUB_TOKEN
+    description: GitHub API token
+    type: string
+    required: true
+    sensitive: true
+---
+
+```json
+{
+  "mcpServers": {
+    "github": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "env": { "GITHUB_TOKEN": "{{GITHUB_TOKEN}}" }
+    }
+  }
+}
+```
+```
+
+变量占位符 `{{VAR_NAME}}` 可用在 JSON 正文的任何字符串位置，包括 `env` 字段和 `args` 数组中的 URL：
+
+```markdown
+---
+name: my-private-mcp
+description: Private MCP server with token in URL
+variables:
+  - name: PRIVATE_TOKEN
+    description: Token for private package registry
+    type: string
+    required: true
+    sensitive: true
+---
+
+```json
+{
+  "mcpServers": {
+    "my-private-mcp": {
+      "command": "uvx",
+      "args": [
+        "--index-url",
+        "https://user:{{PRIVATE_TOKEN}}@private-registry.example.com/org/pypi/-/packages/simple",
+        "my-private-mcp-pkg"
+      ]
+    }
+  }
+}
+```
+```
+
+变量字段说明：
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `name` | string | 是 | 变量名，与 JSON 中的 `{{name}}` 对应 |
+| `description` | string | 是 | 变量描述，用于提示用户输入 |
+| `type` | string | 否 | `string`（默认）/ `number` / `boolean` |
+| `required` | boolean | 否 | 是否必填，默认 `true` |
+| `sensitive` | boolean | 否 | 是否敏感值，默认 `true` |
+
+#### mcp.json（兼容旧格式）
 
 ```json
 {
@@ -193,6 +265,7 @@ YAML frontmatter 为可选，无 frontmatter 的文件也会被正常安装。
 | 指令 | `~/.qoder-cn/commands/<name>.md` |
 | MCP（macOS） | `~/Library/Application Support/QoderCN/SharedClientCache/mcp.json` |
 | MCP（Windows） | `%APPDATA%\QoderCN\SharedClientCache\mcp.json` |
+| MCP 原始文件 | `~/.qoder-cn/mcp/<name>/MCP.md` |
 
 ## 本地开发
 
