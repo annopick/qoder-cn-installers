@@ -161,7 +161,7 @@ description: GitHub MCP server
 
       assert.equal(services.length, 1);
       assert.equal(services[0].name, "github");
-      assert.equal(services[0].config.mcpServers.github.command, "npx");
+      assert.equal((services[0].config.mcpServers.github as { command: string }).command, "npx");
     });
 
     it("falls back to mcp.json when MCP.md is missing", async () => {
@@ -176,7 +176,7 @@ description: GitHub MCP server
 
       assert.equal(services.length, 1);
       assert.equal(services[0].name, "legacy");
-      assert.equal(services[0].config.mcpServers.legacy.command, "legacy");
+      assert.equal((services[0].config.mcpServers.legacy as { command: string }).command, "legacy");
     });
 
     it("throws when frontmatter.name does not match directory", async () => {
