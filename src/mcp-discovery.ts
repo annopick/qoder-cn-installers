@@ -119,7 +119,7 @@ async function parseLegacyMcpJson(filePath: string, directoryName: string): Prom
 }
 
 function extractMcpMdContent(content: string): { frontmatter: McpFrontmatter; jsonBody: string } {
-  const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---/);
+  const frontmatterMatch = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
   let frontmatter: McpFrontmatter = {};
   let body = content;
 
@@ -128,7 +128,7 @@ function extractMcpMdContent(content: string): { frontmatter: McpFrontmatter; js
     body = content.slice(frontmatterMatch[0].length).trim();
   }
 
-  const codeBlockMatch = body.match(/```(?:json)?\n([\s\S]*?)\n```/);
+  const codeBlockMatch = body.match(/```(?:json)?\r?\n([\s\S]*?)\r?\n```/);
   let jsonBody: string;
 
   if (codeBlockMatch) {

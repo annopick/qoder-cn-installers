@@ -44,7 +44,7 @@ export async function discoverAgents(basePath: string): Promise<Agent[]> {
 }
 
 function parseFrontmatter(content: string): Record<string, string> {
-  const match = content.match(/^---\n([\s\S]*?)\n---/);
+  const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
   if (!match) return {};
   const parsed = parseYaml(match[1]);
   return (parsed ?? {}) as Record<string, string>;

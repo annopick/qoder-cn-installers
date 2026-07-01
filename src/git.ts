@@ -10,7 +10,11 @@ export async function cloneRepo(url: string, subpath?: string): Promise<{ cloneD
   const cloneDir = await fs.mkdtemp(path.join(os.tmpdir(), "qci-clone-"));
 
   try {
-    await execFileAsync("git", ["clone", "--depth", "1", url, cloneDir], {
+    // Disable autocrlf so cloned files keep their original line endings.
+    // The frontmatter/code-fence regexes expect LF; a user's global
+    // core.autocrlf=true (common on Windows) would otherwise convert LF to
+    // CRLF and break MCP.md / SKILL.md parsing.
+    await execFileAsync("git", ["-c", "core.autocrlf=false", "clone", "--depth", "1", url, cloneDir], {
       env: { ...process.env, GIT_TERMINAL_PROMPT: "0" },
       timeout: 60_000,
     });
